@@ -82,7 +82,7 @@ az login --use-device-code
 
 # Set your default subscription
 az account list --output table
-az account set --subscription baf304df-eb50-4acf-948e-0b877396ac4f
+az account set --subscription 'TYPE_YOUR_AZURE_SUBSCRIPTION'
 az account show --output table
 
 # Preprare
