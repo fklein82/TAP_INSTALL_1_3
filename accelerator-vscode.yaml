@@ -1,0 +1,12 @@
+apiVersion: projectcontour.io/v1
+kind: HTTPProxy
+metadata:
+  name: expose-acc
+  namespace: accelerator-system
+spec:
+  routes:
+  - services:
+    - name: acc-server
+      port: 80
+  virtualhost:
+    fqdn: tap-acc.'TYPE_HERE_YOUR_DOMAIN_NAME'
