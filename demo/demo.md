@@ -7,7 +7,7 @@
 
 - PPT | Introduction
 
-## Developer experience demo
+## Developer EXperience demo
 - Explore: http://tap-gui.tanzu.fklein.me/catalog?filters%5Bkind%5D=component&filters%5Buser%5D=all
 
 - Accelerators: VScode pluggin or http://tap-gui.tanzu.fklein.me/create?filters%5Bkind%5D=template&filters%5Buser%5D=all
@@ -15,8 +15,8 @@
 - App Deployment: Live View with VScode pluggin or command tanzu apps workload create -f $TANZU_APP_FILES_PATH/config/workload.yaml -y
 
 - Follow: 
-tanzu apps workload tail tanzu-app-deploy -n dev --since 1m
-tanzu apps workload get tanzu-app-deploy -n dev
+tanzu apps workload tail tanzu-java-web-app -n dev --since 1m
+tanzu apps workload get tanzu-java-web-app  -n dev
 
 - Access App & Infos : (Status / Logs / Live View) http://tap-gui.tanzu.fklein.me/catalog/default/component/tanzu-java-web-app/workloads
 
