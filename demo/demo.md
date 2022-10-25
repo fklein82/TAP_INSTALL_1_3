@@ -8,7 +8,7 @@
 - PPT | Introduction
 
 ## Developer experience demo
-- Explore: You can install it with "sudo apt install python3-pip" command in your linux Ubuntu box
+- Explore: http://tap-gui.tanzu.fklein.me/catalog?filters%5Bkind%5D=component&filters%5Buser%5D=all
 
 - Accelerators: VScode pluggin or http://tap-gui.tanzu.fklein.me/create?filters%5Bkind%5D=template&filters%5Buser%5D=all
 
