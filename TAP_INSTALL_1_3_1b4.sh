@@ -240,6 +240,7 @@ k apply -f tekton-pipeline.yaml -n dev
 tanzu package installed get scanning -n tap-install
 tanzu package installed get grype -n tap-install
 
+# Manage the CVE policies
 kubectl apply -n dev -f - -o yaml << EOF
 ---
 apiVersion: scanning.apps.tanzu.vmware.com/v1beta1
@@ -288,5 +289,110 @@ EOF
 # confirm it is installed
 tanzu package installed get metadata-store -n tap-install
 
+# Create Readonly SA --> https://docs.vmware.com/en/VMware-Tanzu-Application-Platform/1.3/tap/GUID-tap-gui-plugins-scc-tap-gui.html#enable-cve-scan-results-2
+
+kubectl apply -f - -o yaml << EOF
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: metadata-store-ready-only
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: metadata-store-read-only
+subjects:
+- kind: ServiceAccount
+  name: metadata-store-read-client
+  namespace: metadata-store
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: metadata-store-read-client
+  namespace: metadata-store
+  annotations:
+    kapp.k14s.io/change-group: "metadata-store.apps.tanzu.vmware.com/service-account"
+automountServiceAccountToken: false
+---
+apiVersion: v1
+kind: Secret
+type: kubernetes.io/service-account-token
+metadata:
+  name: metadata-store-read-client
+  namespace: metadata-store
+  annotations:
+    kapp.k14s.io/change-rule: "upsert after upserting metadata-store.apps.tanzu.vmware.com/service-account"
+    kubernetes.io/service-account.name: "metadata-store-read-client"
+EOF
+
+# Create Read-write service account
+
+kubectl apply -f - -o yaml << EOF
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: metadata-store-read-write
+  namespace: metadata-store
+rules:
+- resources: ["all"]
+  verbs: ["get", "create", "update"]
+  apiGroups: [ "metadata-store/v1" ]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: metadata-store-read-write
+  namespace: metadata-store
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: metadata-store-read-write
+subjects:
+- kind: ServiceAccount
+  name: metadata-store-read-write-client
+  namespace: metadata-store
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: metadata-store-read-write-client
+  namespace: metadata-store
+  annotations:
+    kapp.k14s.io/change-group: "metadata-store.apps.tanzu.vmware.com/service-account"
+automountServiceAccountToken: false
+---
+apiVersion: v1
+kind: Secret
+type: kubernetes.io/service-account-token
+metadata:
+  name: metadata-store-read-write-client
+  namespace: metadata-store
+  annotations:
+    kapp.k14s.io/change-rule: "upsert after upserting metadata-store.apps.tanzu.vmware.com/service-account"
+    kubernetes.io/service-account.name: "metadata-store-read-write-client"
+EOF
+
+# To retrieve the read-only access token, run:
+kubectl get secrets metadata-store-read-client -n metadata-store -o jsonpath="{.data.token}" | base64 -d
+
+# To retrieve the read-write access token, run:
+kubectl get secrets metadata-store-read-write-client -n metadata-store -o jsonpath="{.data.token}" | base64 -d
+
+# Add this proxy configuration to the tap-gui: section of tap-values-testing-scanning.yaml:
+tap_gui:
+  app_config:
+    proxy:
+      /metadata-store:
+        target: https://metadata-store-app.metadata-store:8443/api/v1
+        changeOrigin: true
+        secure: false
+        headers:
+          Authorization: "Bearer ACCESS-TOKEN"
+          X-Custom-Source: project-star
+# -> Where ACCESS-TOKEN is the token you obtained after creating a read-only service account.
+
+
 # Update the tap package
 tanzu package installed update tap -p tap.tanzu.vmware.com -v '1.3.1-build.4' --values-file /home/azureuser/vmware-tap/linuxbox/tap-values-testing-scanning.yaml -n tap-install
+
