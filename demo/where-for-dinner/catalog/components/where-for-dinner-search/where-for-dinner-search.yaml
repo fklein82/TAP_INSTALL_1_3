@@ -29,4 +29,5 @@ spec:
   lifecycle: experimental
   owner: where-for-dinner-team
   system: where-for-dinner
-
+  definition:
+    $text: http://where-for-dinner-dev.tanzu.fklein.me/api/search/v3/api-docs/
