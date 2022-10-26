@@ -231,4 +231,7 @@ subjects:
     name: default
 EOF
 
+# INSTALL ootb-testing-supply-chain
 
+tanzu package install tap -p tap.tanzu.vmware.com -v '1.3.1-build.4' --values-file /home/azureuser/vmware-tap/linuxbox/tap-values-testing.yaml -n tap-install
+k apply -f tekton-pipeline.yaml -n dev
