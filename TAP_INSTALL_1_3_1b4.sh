@@ -235,3 +235,58 @@ EOF
 
 tanzu package install tap -p tap.tanzu.vmware.com -v '1.3.1-build.4' --values-file /home/azureuser/vmware-tap/linuxbox/tap-values-testing.yaml -n tap-install
 k apply -f tekton-pipeline.yaml -n dev
+
+# Install OOTB Supply Chain with Testing and Scanning (verify that both Scan Controller and Grype Scanner are installed)
+tanzu package installed get scanning -n tap-install
+tanzu package installed get grype -n tap-install
+
+kubectl apply -n dev -f - -o yaml << EOF
+---
+apiVersion: scanning.apps.tanzu.vmware.com/v1beta1
+kind: ScanPolicy
+metadata:
+  name: scan-policy
+  labels:
+    'app.kubernetes.io/part-of': 'enable-in-gui'
+spec:
+  regoFile: |
+    package main
+
+    # Accepted Values: "Critical", "High", "Medium", "Low", "Negligible", "UnknownSeverity"
+    notAllowedSeverities := ["Critical", "High", "UnknownSeverity"]
+    ignoreCves := []
+
+    contains(array, elem) = true {
+      array[_] = elem
+    } else = false { true }
+
+    isSafe(match) {
+      severities := { e | e := match.ratings.rating.severity } | { e | e := match.ratings.rating[_].severity }
+      some i
+      fails := contains(notAllowedSeverities, severities[i])
+      not fails
+    }
+
+    isSafe(match) {
+      ignore := contains(ignoreCves, match.id)
+      ignore
+    }
+
+    deny[msg] {
+      comps := { e | e := input.bom.components.component } | { e | e := input.bom.components.component[_] }
+      some i
+      comp := comps[i]
+      vulns := { e | e := comp.vulnerabilities.vulnerability } | { e | e := comp.vulnerabilities.vulnerability[_] }
+      some j
+      vuln := vulns[j]
+      ratings := { e | e := vuln.ratings.rating.severity } | { e | e := vuln.ratings.rating[_].severity }
+      not isSafe(vuln)
+      msg = sprintf("CVE %s %s %s", [comp.name, vuln.id, ratings])
+    }
+EOF
+
+# confirm it is installed
+tanzu package installed get metadata-store -n tap-install
+
+# Update the tap package
+tanzu package installed update tap -p tap.tanzu.vmware.com -v '1.3.1-build.4' --values-file /home/azureuser/vmware-tap/linuxbox/tap-values-testing-scanning.yaml -n tap-install
